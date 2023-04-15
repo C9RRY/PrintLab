@@ -1738,7 +1738,7 @@ class Ui_MainWindow(object):
             self.warrany_print_list = [self.lineEdit_model.text(), self.lineEdit_name.text().title(),
                                        phone_number, "", self.lineEdit_break_fix.text(),
                                        str(self.spinBox_price.value()),
-                                       f'{str(self.spinBox_warranty.value())} міс. ']
+                                       f'{str(self.spinBox_warranty.value())} міс.']
             self.add_to_log(f'Друк гарантійний талон \n {self.warrany_print_list[1]}')
             self.print_path = paste_to_warranty(self.warrany_print_list)
             self.ready_to_print_warranty = 1
@@ -1890,7 +1890,6 @@ class Ui_MainWindow(object):
         if self.lineEdit_mega_user.text() and self.lineEdit_mega_pass.text():
             self.settings_dict['mega_user'] = self.lineEdit_mega_user.text()
             self.settings_dict['mega_pass'] = self.lineEdit_mega_pass.text()
-            self.lineEdit_mega_pass.setText('')
 
         self.settings_dict['auto_sync_time'] = str(self.spinBox_autosync.value())
         self.settings_dict['mega_is_enabled'] = str(self.checkBox.isChecked())

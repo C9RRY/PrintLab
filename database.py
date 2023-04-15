@@ -119,7 +119,7 @@ def custom_sql(query):
 def extract_to_stat(filters):
     conn = sqlite3.connect(database_path)
     cursor = conn.cursor()
-    cursor.execute(f'SELECT date(in_date), ROW_NUMBER() OVER(ORDER BY in_date DESC) AS rn, COUNT(*) as c '
+    cursor.execute(f'SELECT date(in_date), COUNT(*) as c '
                    f'FROM clients '
                    f'{filters} '
                    f'GROUP BY date(in_date) ')
@@ -131,7 +131,7 @@ def extract_to_stat(filters):
     data2 = []
     for item in data:
         for _ in range(90):
-            data2.append(item[2])
+            data2.append(item[1])
         for _ in range(10):
             data2.append(0)
     return data0, data1, data2

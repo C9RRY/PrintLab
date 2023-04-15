@@ -38,8 +38,14 @@ def paste_to_warranty(data):
     short_date = datetime.now().strftime('%Y-%m-%d %H.%M.%S')
     string_width = 25
     price = str(price) + ' грн.'
-    ws["A2"], ws["A10"], ws["A12"], ws["A15"], ws["A8"], ws["A17"] =\
-        model, name, phone_num, short_date, warranty, price
+    ws["A2"], ws["A10"], ws["A12"], ws["A15"], ws["A17"] =\
+        model, name, phone_num, short_date, price
+    if warranty != '0 міс.':
+        ws["A8"] = warranty
+    else:
+        ws["A7"] = ws["A8"] = ' '
+        ws["A19"] = 'ТАЛОН'
+        ws["A20"] = 'ВИДАЧІ'
     break_fix = textwrap.fill(break_fix, string_width).split("\n")
     ws["A4"] = break_fix[0]
     if len(break_fix) >= 2:

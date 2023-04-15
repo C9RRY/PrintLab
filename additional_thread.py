@@ -53,7 +53,8 @@ class RadioAndAutoprintThread(QtCore.QThread):
                 self.mainwindow.add_to_log('Cинхронізація')
                 try:
                     mega = Mega()
-                    m = mega.login('ivan.lisovenko93@gmail.com', '93uranos')
+                    m = mega.login(self.mainwindow.settings_dict['mega_user'],
+                                   self.mainwindow.settings_dict['mega_pass'])
                     details = m.get_user()
                     self.mainwindow.add_to_log(f"З'єднано \n {details['email']} ")
                     file = m.find(old_db_name)
@@ -62,7 +63,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
                 except Exception as ex:
                     self.mainwindow.user_login_status = False
                     self.mainwindow.add_to_log(f"З'єднання розірвано \n {ex}")
-                    shutil.copy(db_name, old_db_name)
+                    continue
 
                 conn = sqlite3.connect(str(dir_path) + '/' + old_db_name)
                 cursor = conn.cursor()
@@ -91,7 +92,8 @@ class RadioAndAutoprintThread(QtCore.QThread):
                 self.mainwindow.add_to_log('Оновлення бази даних')
                 try:
                     mega = Mega()
-                    m = mega.login('ivan.lisovenko93@gmail.com', '93uranos')
+                    m = mega.login(self.mainwindow.settings_dict['mega_user'],
+                                   self.mainwindow.settings_dict['mega_pass'])
                     for _ in range(2):
                         file = m.find(old_db_name)
                         if file:
