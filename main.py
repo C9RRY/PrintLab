@@ -1448,7 +1448,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "TechnoLab"))
         self.label_log.setText(_translate("MainWindow", "log"))
         self.label_25.setText(_translate("MainWindow", "Пошук по"))
         item = self.tableWidget_clien_cards.horizontalHeaderItem(0)
