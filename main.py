@@ -527,13 +527,14 @@ class Ui_MainWindow(object):
         self.label_predict_phone_number = QtWidgets.QLabel(self.widget_2)
         self.label_predict_phone_number.setMinimumSize(QtCore.QSize(250, 0))
         self.label_predict_phone_number.setMaximumSize(QtCore.QSize(250, 16777215))
+        self.label_predict_phone_number.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter)
         font = QtGui.QFont()
         font.setPointSize(12)
         font.setBold(True)
         font.setItalic(True)
         font.setWeight(75)
         self.label_predict_phone_number.setFont(font)
-        self.label_predict_phone_number.setStyleSheet("color: rgb(131, 131, 131);")
+        self.label_predict_phone_number.setStyleSheet("color: black;")
         self.label_predict_phone_number.setText("")
         self.label_predict_phone_number.setObjectName("label_predict_phone_number")
         self.gridLayout_4.addWidget(self.label_predict_phone_number, 0, 2, 1, 1)
@@ -568,7 +569,7 @@ class Ui_MainWindow(object):
         self.label_15.setFont(font)
         self.label_15.setObjectName("label_15")
         self.horizontalLayout_5.addWidget(self.label_15)
-        self.comboBox_coupon_gadget_type = QtWidgets.QComboBox(self.widget_10)
+        self.comboBox_coupon_gadget_type = QtWidgets.QLineEdit(self.widget_10)
         self.comboBox_coupon_gadget_type.setMinimumSize(QtCore.QSize(200, 0))
         font = QtGui.QFont()
         font.setFamily("Arial")
@@ -1421,8 +1422,6 @@ class Ui_MainWindow(object):
         self.pushButton_generate_statistic.clicked.connect(self.statistic_generate)
 
         self.date_now = datetime.now()
-        self.comboBox_coupon_gadget_type.addItems(['Телефон', 'Планшет', 'Телевізор',
-                                                   'Ноутбук', 'ПК', 'Монітор', 'інше'])
         self.comboBox_coupon_gadget_type_2.addItems(['Телефон', 'Планшет', 'Телевізор',
                                                    'Ноутбук', 'ПК', 'Монітор', 'інше'])
         self.comboBox_gadget_type.addItems(['Всі', 'Телефон', 'Планшет', 'Телевізор',
@@ -1474,6 +1473,7 @@ class Ui_MainWindow(object):
         self.label_28.setText(_translate("MainWindow", "Комплектація"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Нова"))
         self.label_2.setText(_translate("MainWindow", "Тел. клієнта"))
+        # self.label_20.setText(_translate("MainWindow", "sldkfs"))
         self.label_15.setText(_translate("MainWindow", "Комплектація"))
         self.label_16.setText(_translate("MainWindow", "Додатково"))
         self.label_5.setText(_translate("MainWindow", "Модель"))
@@ -1599,22 +1599,24 @@ class Ui_MainWindow(object):
     def open_selected(self, row, col):
         self.selected_user_id = int(self.tableWidget_clien_cards.item(row, 0).text())
         self.tabWidget.setTabVisible(2, True)
-        columns = 'device_type, package, break_fix, price, warranty'
+        columns = 'device_type, package, break_fix, price, warranty, in_date'
         self.client_table_filters = 'WHERE '
         self.client_table_filters += f'id = {self.tableWidget_clien_cards.item(row, 0).text()} '
         data = extract_clients_data(columns, self.client_table_filters)
-
+        in_date_datetime = datetime.strptime(data[0][5], '%Y-%m-%d %H:%M:%S')
         self.lineEdit_phone_number.setText(self.tableWidget_clien_cards.item(row, 4).text())
         self.lineEdit_name.setText(self.tableWidget_clien_cards.item(row, 3).text())
         self.lineEdit_model.setText(self.tableWidget_clien_cards.item(row, 2).text())
         self.lineEdit_phone_breakage.setText(self.tableWidget_clien_cards.item(row, 5).text())
         if data:
-            self.comboBox_coupon_gadget_type.setCurrentIndex(0)
-            self.comboBox_coupon_gadget_type.setCurrentText(data[0][0])
+            self.comboBox_coupon_gadget_type.setText(data[0][0])
             self.lineEdit_package.setText(data[0][1])
             self.lineEdit_break_fix.setText(data[0][2])
             self.spinBox_price.setValue(int(data[0][3]))
             self.spinBox_warranty.setValue(int(data[0][4][0:-4]))
+            self.label_predict_phone_number.setText(f"{str(in_date_datetime.day)} "
+                                                    f"{calendar.month_name[in_date_datetime.month]} "
+                                                    f"{data[0][5][0:4]} ")
         self.break_fix_input_prediction()
         self.tabWidget.setCurrentIndex(2)
 
@@ -1715,7 +1717,7 @@ class Ui_MainWindow(object):
         order_string += f'"{phone_number}", '
         order_string += f'"{self.lineEdit_name.text().lower()}", '
         order_string += f'"{self.lineEdit_model.text().lower()}", '
-        order_string += f'"{self.comboBox_coupon_gadget_type.currentText().lower()}", '
+        order_string += f'"{self.comboBox_coupon_gadget_type.text().lower()}", '
         order_string += f'"{self.lineEdit_package.text().lower()}", '
         order_string += f'"{self.lineEdit_phone_breakage.text().lower()}", '
         order_string += f'"{self.lineEdit_break_fix.text().lower()}", '
@@ -1743,10 +1745,11 @@ class Ui_MainWindow(object):
             self.print_path = paste_to_warranty(self.warrany_print_list)
             self.ready_to_print_warranty = 1
         else:
-            self.print_list = [self.lineEdit_model.text(), self.comboBox_coupon_gadget_type.currentText() + ' ' +
+            self.print_list = [self.lineEdit_model.text(), self.comboBox_coupon_gadget_type.text() + ' ' +
                                self.lineEdit_package.text().lower(), self.lineEdit_phone_breakage.text(),
                                self.lineEdit_name.text().title(), phone_number,
-                               self.settings_dict['additional_print_line1'], self.settings_dict['additional_print_line2'],
+                               self.settings_dict['additional_print_line1'],
+                               self.settings_dict['additional_print_line2'],
                                self.settings_dict['additional_print_line3']]
             self.add_to_log(f'Друк {self.lineEdit_name_2.text()}')
             self.print_path = paste_to_order(self.print_list)
@@ -1761,7 +1764,7 @@ class Ui_MainWindow(object):
     def break_fix_input_prediction(self):
         self.comboBox_break_fix_predict.clear()
         if self.lineEdit_break_fix.text() == '':
-            line_edit_text = f'WHERE device_type = "{self.comboBox_coupon_gadget_type.currentText().lower()}"'
+            line_edit_text = f'WHERE device_type = "{self.comboBox_coupon_gadget_type.text().lower()}"'
         else:
             line_edit_text = f'WHERE break_fix LIKE "%{self.lineEdit_break_fix.text().lower()}%" '
         self.comboBox_break_fix_predict.addItems(get_must_use(
