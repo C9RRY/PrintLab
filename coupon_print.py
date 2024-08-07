@@ -52,8 +52,8 @@ def paste_to_warranty(data):
         ws["A5"] = break_fix[1]
     if len(break_fix) >= 3:
         ws["A6"] = break_fix[2]
-    wb.save(f"{static_path}/excel_files/saved_xlsx/warr{name}_{short_date}.xlsx".replace(' ', '_'))
-    return f"{static_path}/excel_files/saved_xlsx/warr{name}_{short_date}.xlsx".replace(' ', '_')
+    wb.save(f"{static_path}/excel_files/saved_xlsx/warr_{name}_{short_date}.xlsx".replace(' ', '_'))
+    return f"{static_path}/excel_files/saved_xlsx/warr_{name}_{short_date}.xlsx".replace(' ', '_')
 
 
 

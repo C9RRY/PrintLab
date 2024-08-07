@@ -1,6 +1,8 @@
 import sqlite3
+import pathlib
 
 
+dir_path = pathlib.Path(__file__).parent.resolve()
 database_path = 'ling_lab.sqlite3'
 
 
@@ -36,12 +38,12 @@ def save_warranty(columns, order_string, client_id):
     conn.commit()
 
 
-def get_must_use(columns, filters=''):
+def get_must_use(column, filters=''):
     conn = sqlite3.connect(database_path)
     cursor = conn.cursor()
-    data = cursor.execute(f'SELECT {columns},  COUNT(*) as c '
+    data = cursor.execute(f'SELECT {column},  COUNT(*) as c '
                           f'FROM clients {filters} '
-                          f'GROUP BY {columns} '
+                          f'GROUP BY {column} '
                           f'ORDER BY c DESC '
                           f'LIMIT 20')
     out_data = []
@@ -49,7 +51,20 @@ def get_must_use(columns, filters=''):
         if item[0] != '':
             out_data.append(item[0])
     return out_data
-    pass
+
+
+def get_previous_price(filters=''):
+    conn = sqlite3.connect(database_path)
+    cursor = conn.cursor()
+    data = cursor.execute(f'SELECT price, in_date FROM clients  '
+                          f' {filters} '
+                          f'ORDER BY in_date DESC '
+                          f'LIMIT 1')
+    out_data = []
+    for item in data:
+        if item[0] != '':
+            out_data.append(item[0])
+    return out_data
 
 
 def extract_radios_data(columns):
@@ -76,9 +91,17 @@ def save_radio_choice(columns, values, filters):
 def save_new_station(name, url):
     conn = sqlite3.connect(database_path)
     cursor = conn.cursor()
-    sql = f'INSERT INTO radios(name, url)' \
+    sql = f'INSERT INTO radios(name, url) ' \
           f'VALUES ("{name}", "{url}") '
     cursor.execute(sql)
+    conn.commit()
+
+
+def del_station(station_id):
+    conn = sqlite3.connect(database_path)
+    cursor = conn.cursor()
+    cursor.execute(f'DELETE FROM radios '
+                   f'WHERE id = {int(station_id)} ')
     conn.commit()
 
 
@@ -135,6 +158,57 @@ def extract_to_stat(filters):
         for _ in range(10):
             data2.append(0)
     return data0, data1, data2
+
+
+def extract_from_backup(old_db_path, db_path):
+    conn = sqlite3.connect(old_db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT brand, package, breakage, name, phone_number, in_date, '
+                   'break_fix, price, warranty, out_date, is_fixed, device_type, client_rate '
+                   'FROM clients ')
+    data = cursor.fetchall()
+    conn.commit()
+
+    cursor.execute('SELECT id, name, url '
+                   'FROM radios ')
+    radios_data = cursor.fetchall()
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+    conn = sqlite3.connect(db_path)
+    for client in data:
+        cursor = conn.cursor()
+        cursor.execute(f'INSERT INTO clients (brand, package, breakage, name, phone_number, in_date, '
+                       f'break_fix, price, warranty, out_date, is_fixed, device_type, client_rate) '
+                       f'SELECT * FROM (SELECT "{client[0]}" AS brand, "{client[1]}" AS package, '
+                       f'"{client[2]}" AS breakage, "{client[3]}" AS name, "{client[4]}" AS phone_number, '
+                       f'"{client[5]}" AS in_date, "{client[6]}" AS break_fix, "{client[7]}" AS price, '
+                       f'"{client[8]}" AS warranty, "{client[9]}" AS out_date, "{client[10]}" AS is_fixed, '
+                       f'"{client[11]}" AS device_type, "{client[12]}" AS client_rate'
+                       f') AS temp '
+                       f'WHERE NOT EXISTS ('
+                       f'  SELECT in_date FROM clients WHERE in_date = "{client[5]}" '  # need to add AND name =
+                       f') LIMIT 1')
+    conn.commit()
+    for client in data:
+        if client[10] == '1':
+            cursor = conn.cursor()
+            cursor.execute(f'UPDATE clients '
+                           f'SET break_fix = "{client[6]}", price = "{client[7]}", warranty = "{client[8]}", '
+                           f'out_date = "{client[9]}" , is_fixed = "{client[10]}", client_rate = "{client[12]}"'
+                           f'WHERE in_date = "{client[5]}" AND is_fixed = "0" ')
+    conn.commit()
+    cursor.close()
+    for radio in radios_data:
+        cursor = conn.cursor()
+        cursor.execute(f'INSERT INTO radios (name, url)  '
+                       f'SELECT * FROM (SELECT "{radio[1]}" AS name, "{radio[2]}" AS url'
+                       f') AS temp '
+                       f'WHERE NOT EXISTS ('
+                       f'  SELECT name FROM clients WHERE name = "{radio[1]}" '  
+                       f') LIMIT 1')
+    conn.commit()
 
 
 if __name__ == '__main__':

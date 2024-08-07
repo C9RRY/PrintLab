@@ -1,3 +1,5 @@
 ling_lab.sqlite3
 /venv/
 /excel_files/saved_xlsx/
+*.png
+*.sqlite3

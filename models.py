@@ -17,10 +17,11 @@ def create_clients():
                    "device_type VARCHAR(50), "
                    "package VARCHAR(150), "
                    "out_date VARCHAR(40), "
-                   "warranty VARCHAR(20) DEFAULT '3 міс.', "
+                   "warranty VARCHAR(20) DEFAULT '0 міс.', "
                    "price VARCHAR(20) DEFAULT '0', "
-                   "is_fixed BOOLEAN DEFAULT FALSE, "
-                   "break_fix VARCHAR(100) DEFAULT '') ")
+                   "is_fixed VARCHAR(10) DEFAULT '0', "
+                   "break_fix VARCHAR(100) DEFAULT '', "
+                   "client_rate VARCHAR(10) DEFAULT 'normal' )")
 
     conn.commit()
 
@@ -60,11 +61,12 @@ def create_all():
         create_clients()
         create_radios()
         create_settings()
-        setting_dict = {'radio_current_url': 'пусто)', 'radio_is_play': '',
-                        'mega_user': '', 'mega_is_enabled': 'True',
+        setting_dict = {'radio_current_url': '', 'radio_current_name': '',
+                        'radio_is_playing': '0', 'radio_volume_level': '50',
+                        'mega_user': '', 'mega_is_enabled': '1',
                         'mega_pass': '', 'hide_pass': '',
-                        'google_api': '', 'google_is_enabled': '', 'auto_sync_time': '30',
-                        'auto_print': 'True', 'copies': '2', 'pause_between_copies': '5',
+                        'google_api': '', 'google_is_enabled': '', 'auto_sync_time': '120',
+                        'auto_print': '1', 'copies': '2', 'pause_between_copies': '5',
                         'additional_print_line1': '', 'additional_print_line2': '',
                         'additional_print_line3': ''}
         save_first_settings(setting_dict)

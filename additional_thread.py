@@ -1,11 +1,12 @@
 import os
-import pathlib
 import shutil
-import sqlite3
 from PyQt5 import QtCore
 import asyncio
+import pathlib
 from mega import Mega
-
+import urllib.request
+import re
+from database import extract_from_backup
 
 dir_path = pathlib.Path(__file__).parent.resolve()
 old_db_name = 'old_ling_lab.sqlite3'
@@ -27,24 +28,63 @@ class RadioAndAutoprintThread(QtCore.QThread):
         loop.run_until_complete(self.run_all())
 
     async def run_all(self):
-        await asyncio.gather(self.radio_pl(), self.auto_sync(), self.db_sync(),
-                             self.print_coupons(), self.print_warranty())
+        await asyncio.gather(self.radio_pl(), self.auto_sync(), self.db_sync(), self.blink_timer(),
+                             self.print_coupons(), self.print_warranty(), self.check_current_song())
+
+    async def blink_timer(self):
+        blink_flag = 1
+        while True:
+            if self.mainwindow.current_client_rate == 'blacklist':
+                if blink_flag:
+                    self.mainwindow.label_InBlackList.setText("У ЧОРНОМУ СПИСКУ!!!")
+                    blink_flag = 0
+                else:
+                    self.mainwindow.label_InBlackList.setText("")
+                    blink_flag += 1
+            await asyncio.sleep(0.7)
 
     async def radio_pl(self):
         while True:
-            if self.mainwindow.radio_is_play:
+            if self.mainwindow.radio_is_playing:
                 try:
                     radio_player = vlc.MediaPlayer(self.mainwindow.radio_current_url)
                     radio_player.play()
-                    self.mainwindow.add_to_log(f"Радіо стрім \n {self.mainwindow.radio_current_url}")
+                    self.mainwindow.add_to_log(f"Радіо стрім  {self.mainwindow.radio_current_url}")
                     old_url = self.mainwindow.radio_current_url
-                    while old_url == self.mainwindow.radio_current_url and self.mainwindow.radio_is_play:
-                        await asyncio.sleep(0.8)
+                    self.info_line = '  '
+                    self.old_song = ''
+                    while old_url == self.mainwindow.radio_current_url and self.mainwindow.radio_is_playing:
+                        radio_player.audio_set_volume(self.mainwindow.horizontalSliderRadioLoud.value())
+                        if self.old_song != self.mainwindow.radio_current_song:
+                            self.old_song = self.mainwindow.radio_current_song
+                        self.mainwindow.labelLog.setText(self.mainwindow.radio_current_song)
+                        await asyncio.sleep(0.5)
                     radio_player.stop()
                 except Exception as ex:
                     self.mainwindow.add_to_log(ex)
                     break
             await asyncio.sleep(0.1)
+
+    async def check_current_song(self):
+        while True:
+            if self.mainwindow.radio_is_playing:
+                try:
+                    request = urllib.request.Request(self.mainwindow.radio_current_url)
+                    request.add_header('Icy-MetaData', 1)
+                    response = urllib.request.urlopen(request)
+                    icy_metaint_header = response.headers.get('icy-metaint')
+                    if icy_metaint_header is not None:
+                        metaint = int(icy_metaint_header)
+                        read_buffer = metaint + 255
+                        content = response.read(read_buffer)
+                        content = content.decode('latin-1')
+                        pattern = r"StreamTitle='(.*?)';"
+                        content = re.search(pattern, content)
+                        self.mainwindow.radio_current_song = content.group(1)
+                        self.mainwindow.show_current_song()
+                except Exception as ex:
+                    self.mainwindow.add_to_log(ex)
+            await asyncio.sleep(5)
 
     async def db_sync(self):
         while True:
@@ -56,39 +96,30 @@ class RadioAndAutoprintThread(QtCore.QThread):
                     m = mega.login(self.mainwindow.settings_dict['mega_user'],
                                    self.mainwindow.settings_dict['mega_pass'])
                     details = m.get_user()
-                    self.mainwindow.add_to_log(f"З'єднано \n {details['email']} ")
+                    self.mainwindow.add_to_log(f"З'єднано {details['email']} ")
                     file = m.find(old_db_name)
                     self.mainwindow.add_to_log('Завантажую файли')
-                    m.download(file)
+                    self.mainwindow.user_login_status = True
+                    self.mainwindow.check_mega_login()
+                    self.mainwindow.db_ready_to_upload = True
+                    if file:
+                        m.download(file)
+                        old_db_path = str(dir_path) + '/' + old_db_name
+                        db_path = str(dir_path) + '/' + db_name
+                        extract_from_backup(old_db_path, db_path)
                 except Exception as ex:
-                    self.mainwindow.user_login_status = False
-                    self.mainwindow.add_to_log(f"З'єднання розірвано \n {ex}")
-                    continue
+                    if str(ex) == "'NoneType' object is not subscriptable":
+                        self.mainwindow.add_to_log(str(ex))
+                    else:
+                        self.mainwindow.user_login_status = False
+                        self.mainwindow.add_to_log(f"З'єднання розірвано  {ex}")
+                        if self.mainwindow.auth_has_been_changed:
+                            self.mainwindow.mega_logout()
+                            self.mainwindow.auth_has_been_changed = False
+                        continue
 
-                conn = sqlite3.connect(str(dir_path) + '/' + old_db_name)
-                cursor = conn.cursor()
-                cursor.execute(f'SELECT brand, package, breakage, name, phone_number, in_date, '
-                               f'break_fix, price, warranty, out_date, is_fixed, device_type '
-                               f'FROM clients ')
-                data = cursor.fetchall()
-                conn.commit()
-                cursor.close()
-                conn.close()
-                for client in data:
-                    conn = sqlite3.connect(str(dir_path) + '/' + db_name)
-                    cursor = conn.cursor()
-                    cursor.execute(f'INSERT INTO clients (brand, package, breakage, name, phone_number, in_date, '
-                                   f'break_fix, price, warranty, out_date, is_fixed, device_type) '
-                                   f'SELECT * FROM (SELECT "{client[0]}" AS brand, "{client[1]}" AS package, '
-                                   f'"{client[2]}" AS breakage, "{client[3]}" AS name, "{client[4]}" AS phone_number, '
-                                   f'"{client[5]}" AS in_date, "{client[6]}" AS break_fix, "{client[7]}" AS price, '
-                                   f'"{client[8]}" AS warranty, "{client[9]}" AS out_date, "{client[10]}" AS is_fixed, '
-                                   f'"{client[11]}" AS device_type'
-                                   f') AS temp '
-                                   f'WHERE NOT EXISTS ('
-                                   f'  SELECT in_date FROM clients WHERE in_date = "{client[5]}" '  # need to add AND name =
-                                   f') LIMIT 1')
-                    conn.commit()
+            if self.mainwindow.db_ready_to_upload:
+                self.mainwindow.db_ready_to_upload = False
                 self.mainwindow.add_to_log('Оновлення бази даних')
                 try:
                     mega = Mega()
@@ -102,7 +133,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
                     m.upload(old_db_name)
                     self.mainwindow.add_to_log('Синхронізовано')
                 except Exception as ex:
-                    self.mainwindow.add_to_log(f"З'єднання розірвано \n {ex}")
+                    self.mainwindow.add_to_log(f"З'єднання розірвано  {ex}")
                 self.mainwindow.add_to_log('Очистка тимчасових файлів')
                 try:
                     os.remove(old_db_name)
@@ -110,13 +141,13 @@ class RadioAndAutoprintThread(QtCore.QThread):
                 except Exception as ex:
                     self.mainwindow.add_to_log(ex)
                 self.mainwindow.progress_bar_status = False
-
                 self.mainwindow.paste_in_clients_table()
+                self.mainwindow.paste_in_radios_table()
             await asyncio.sleep(1)
 
     async def auto_sync(self):
         while True:
-            await asyncio.sleep(self.mainwindow.spinBox_autosync.value() * 60)
+            await asyncio.sleep(self.mainwindow.spinBoxBackupTime.value() * 60)
             if self.mainwindow.checkBox.isChecked():
                 self.mainwindow.db_ready_to_sync = True
 
@@ -129,7 +160,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
                     self.mainwindow.add_to_log(ex)
                     self.mainwindow.ready_to_print -= 1
                 self.mainwindow.ready_to_print -= 1
-                await asyncio.sleep(self.mainwindow.spinBox_2.value())
+                await asyncio.sleep(self.mainwindow.spinBoxPauseBetweenCopies.value())
             await asyncio.sleep(1)
 
     async def print_warranty(self):
