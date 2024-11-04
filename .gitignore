@@ -1,0 +1,4 @@
+/venv/
+/excel_files/saved_xlsx/
+*.png
+*.sqlite3
