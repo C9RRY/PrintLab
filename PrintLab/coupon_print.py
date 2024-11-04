@@ -3,7 +3,7 @@ from openpyxl import load_workbook
 import textwrap
 import os
 
-static_path = f"{os.path.dirname(os.path.abspath(__file__))}"
+static_path = f"{os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}"
 
 
 def paste_to_order(data):

@@ -22,6 +22,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
     def __init__(self, mainwindow, parent=None):
         super().__init__()
         self.mainwindow = mainwindow
+        self._is_running = True
 
     def run(self):
         loop = asyncio.new_event_loop()
@@ -33,7 +34,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
 
     async def blink_timer(self):
         blink_flag = 1
-        while True:
+        while self._is_running:
             if self.mainwindow.current_client_rate == 'blacklist':
                 if blink_flag:
                     self.mainwindow.label_InBlackList.setText("У ЧОРНОМУ СПИСКУ!!!")
@@ -44,7 +45,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
             await asyncio.sleep(0.7)
 
     async def radio_pl(self):
-        while True:
+        while self._is_running:
             if self.mainwindow.radio_is_playing:
                 try:
                     radio_player = vlc.MediaPlayer(self.mainwindow.radio_current_url)
@@ -66,7 +67,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
             await asyncio.sleep(0.1)
 
     async def check_current_song(self):
-        while True:
+        while self._is_running:
             if self.mainwindow.radio_is_playing:
                 try:
                     request = urllib.request.Request(self.mainwindow.radio_current_url)
@@ -87,7 +88,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
             await asyncio.sleep(5)
 
     async def db_sync(self):
-        while True:
+        while self._is_running:
             if self.mainwindow.db_ready_to_sync:
                 self.mainwindow.db_ready_to_sync = False
                 self.mainwindow.add_to_log('Cинхронізація')
@@ -147,13 +148,13 @@ class RadioAndAutoprintThread(QtCore.QThread):
             await asyncio.sleep(1)
 
     async def auto_sync(self):
-        while True:
+        while self._is_running:
             await asyncio.sleep(self.mainwindow.spinBoxBackupTime.value() * 60)
             if self.mainwindow.checkBoxAutobackup.isChecked():
                 self.mainwindow.db_ready_to_sync = True
 
     async def print_coupons(self):
-        while True:
+        while self._is_running:
             while self.mainwindow.ready_to_print > 0:
                 try:
                     os.startfile(self.mainwindow.print_path, "print")
@@ -165,7 +166,7 @@ class RadioAndAutoprintThread(QtCore.QThread):
             await asyncio.sleep(1)
 
     async def print_warranty(self):
-        while True:
+        while self._is_running:
             if self.mainwindow.ready_to_print_warranty > 0:
                 try:
                     os.startfile(self.mainwindow.print_path, "print")
@@ -173,3 +174,6 @@ class RadioAndAutoprintThread(QtCore.QThread):
                     self.mainwindow.add_to_log(ex)
                 self.mainwindow.ready_to_print_warranty -= 1
             await asyncio.sleep(1)
+
+    def stop_all(self):
+        self._is_running = False

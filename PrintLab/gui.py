@@ -58,7 +58,7 @@ class Ui_MyWindow(Ui_MainWindow):
 
         self.tableWidgetRadioStations.setColumnWidth(0, 180)
         self.tableWidgetRadioStations.setColumnWidth(1, 510)
-        self.tableWidgetRadioStations.setColumnWidth(2, 20)
+        self.tableWidgetRadioStations.setColumnWidth(2, 50)
         self.tableWidgetRadioStations.setColumnWidth(3, 0)
 
         self.tableWidget.setColumnWidth(0, 85)

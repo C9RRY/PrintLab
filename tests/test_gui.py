@@ -1,6 +1,5 @@
 import pytest
-from PyQt6 import QtWidgets, QtCore
-from PrintLab.ui_main_window import Ui_MainWindow
+from PyQt6 import QtWidgets
 from PrintLab.gui import Ui_MyWindow
 
 
@@ -9,17 +8,6 @@ class MainWindowGuiTest(QtWidgets.QMainWindow, Ui_MyWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)  # Налаштовуємо інтерфейс
-
-# class MainWindowGuiTest(QtWidgets.QMainWindow):
-#     """Клас для тестування, що поєднує QMainWindow та два інтерфейси."""
-#     def __init__(self):
-#         super().__init__()
-#         self.ui_main = Ui_MainWindow()
-#         self.ui_mywindow = Ui_MyWindow()
-#
-#         # Налаштовуємо обидва інтерфейси
-#         self.ui_main.setupUi(self)
-#         self.ui_mywindow.setupUi(self)
 
 
 @pytest.fixture
@@ -37,19 +25,23 @@ def test_window_title(gui_window):
     assert gui_window.windowTitle() == expected_title
 
 
-def test_tableWidgetClients_column_widths(gui_window, qtbot):
+def test_table_clients_column_widths(gui_window):
     """Тест перевіряє, чи правильно встановлені ширини колонок у tableWidgetClients."""
     expected_widths = [55, 90, 140, 160, 105, 200]
     for col, expected_width in enumerate(expected_widths):
         assert gui_window.tableWidgetClients.columnWidth(col) == expected_width
 
-# def test_tableWidgetClients_column_widths(gui_window):
-#     """Тест перевіряє, чи правильно встановлені ширини колонок у tableWidgetClients."""
-#     # Перевіряємо, чи setupUi налаштував tableWidgetClients через екземпляр ui_main
-#     gui_window.ui_mywindow.setupUi(gui_window)
-#
-#     # Тепер перевіряємо ширину колонок через self.ui_main
-#     expected_widths = [12, 90, 140, 160, 105, 200]
-#
-#     for col, expected_width in enumerate(expected_widths):
-#         assert gui_window.ui_mywindow.tableWidgetClients.columnWidth(col) == expected_width
+
+def test_table_radio_column_widths(gui_window):
+    """Тест перевіряє, чи правильно встановлені ширини колонок у tableWidgetRadioStations."""
+    expected_widths = [180, 510, 50, 0]
+    for col, expected_width in enumerate(expected_widths):
+        assert gui_window.tableWidgetRadioStations.columnWidth(col) == expected_width
+
+
+def test_table_previous_orders_column_widths(gui_window):
+    """Тест перевіряє, чи правильно встановлені ширини колонок у tableWidget."""
+    expected_widths = [85, 110, 270, 270]
+    for col, expected_width in enumerate(expected_widths):
+        assert gui_window.tableWidget.columnWidth(col) == expected_width
+
