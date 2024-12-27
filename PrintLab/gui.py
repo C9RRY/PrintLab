@@ -9,11 +9,13 @@ import calendar
 import shutil
 import os
 from PrintLab.additional_thread import RadioAndAutoprintThread
-from PrintLab.mega_form import Ui_DialogMegaLogin
+from PrintLab.user_form import Ui_DialogMegaLogin
 from PrintLab.confirm_form import Ui_MainWindowConfirmForm
 from PyQt6 import QtCore, QtWidgets
 from PrintLab.ui_main_window import Ui_MainWindow
+from PrintLab.firebase_conn import get_from_firebase, login
 import sys
+
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,7 +23,7 @@ dir_path = os.path.dirname(os.path.abspath(__file__))
 class Ui_MyWindow(Ui_MainWindow):
     def __init__(self):
         self.logs_count = 0
-        self.warranty_date = '1111-11-11 11:11:11'
+        self.warranty_date = '0000-00-00 00:00:00'
         self.is_previous_orders = False
         self.client_table_filters = ''
         self.settings_dict = extract_settings()
@@ -31,7 +33,7 @@ class Ui_MyWindow(Ui_MainWindow):
         self.print_path = ''
         self.ready_to_print = 0
         self.ready_to_print_warranty = 0
-        self.db_ready_to_upload = False
+        self.db_ready_to_upload = 0
         self.warranty_print_list = []
         self.radio_current_song = ''
         self.sharing_dict = {}
@@ -46,6 +48,8 @@ class Ui_MyWindow(Ui_MainWindow):
         self.radio_current_url = ''
         self.radio_current_name = ''
         self.radio_thread = RadioAndAutoprintThread(mainwindow=self)
+        self.cloud_radio_num = 0
+        self.last_backup_datetime = '0000-00-00 00:00:00'
 
     def setupUi(self, MainWindow):
         Ui_MainWindow.setupUi(self, MainWindow)
@@ -114,21 +118,22 @@ class Ui_MyWindow(Ui_MainWindow):
 
         self.tableWidgetRadioStations.cellClicked.connect(self.click_to_play)
 
-        self.pushButtonSyncToMega.clicked.connect(self.sync_with_cloud)
+        self.pushButtonSyncToFirebase.clicked.connect(self.sync_with_cloud)
         self.pushButtonCouponSave.clicked.connect(self.save_warranty_or_order_change)
         self.pushButtonCouponPrint.clicked.connect(self.print_warranty)
         self.pushButtonCreateTabSave.clicked.connect(self.new_order_check_all_fields)
         self.pushButtonCreateTabClear.clicked.connect(self.new_order_clean_all)
         self.pushButtonRadioSave.clicked.connect(self.save_new_station)
         self.pushButtonSettingsSave.clicked.connect(self.save_settings)
+        self.pushButtonRadiosFromCloud.clicked.connect(self.extract_radios_from_cloud)
         self.pushButtonRadioPlay.clicked.connect(self.enable_radio)
         self.pushButtonRadioStop.clicked.connect(self.disable_radio)
-        self.pushButtonMegaLogout.clicked.connect(self.mega_logout_confirm)
+        self.pushButtonLogout.clicked.connect(self.user_logout_confirm)
         self.pushButtonExportBase.clicked.connect(self.save_backup_file)
         self.pushButtonImportBase.clicked.connect(self.open_backup_file)
         self.pushButtonOpenClientFile.clicked.connect(self.open_client_xlsx)
 
-        self.toolButtonAuth.clicked.connect(lambda: self.open_mega_form())
+        self.toolButtonAuth.clicked.connect(lambda: self.open_sing_up_form())
 
         self.radio_thread.start()
         self.create_tab_input_prediction()
@@ -138,7 +143,7 @@ class Ui_MyWindow(Ui_MainWindow):
         self.tab.setTabVisible(2, False)
         self.comboBoxCreateTabAdditionalPack.setCurrentIndex(1)
         self.paste_in_radios_table()
-        self.check_mega_login()
+        self.check_login()
         if self.radio_is_playing:
             self.enable_radio()
         self.db_ready_to_sync = True
@@ -162,28 +167,38 @@ class Ui_MyWindow(Ui_MainWindow):
         self.lineEditAdditional_info3.setText(self.settings_dict['additional_print_line3'])
         self.comboBoxColorTheme.setCurrentText(self.settings_dict['theme'])
 
-    def check_mega_login(self):
+        # self.last_backup_datetime = datetime.now()
+        # print(self.last_backup_datetime)
+
+        self.last_backup_datetime = '20241227121448'
+        self.last_backup_datetime = datetime.strptime(self.last_backup_datetime, "%Y%m%d%H%M%S")
+
+
+
+    def check_login(self):
         if self.user_login_status:
-            self.pushButtonMegaLogout.show()
+            self.pushButtonLogout.show()
+            self.pushButtonSyncToFirebase.setText('Синхронізувати')
             self.labelMegaLogin.setText(self.settings_dict['mega_user'])
         else:
-            self.pushButtonMegaLogout.hide()
+            self.pushButtonLogout.hide()
+            self.pushButtonSyncToFirebase.setText('Увійти')
             self.labelMegaLogin.setText('')
 
-    def mega_logout_confirm(self):
-        self.open_confirm_form(f'Вийти з {self.settings_dict["mega_user"]}?', self.mega_logout)
+    def user_logout_confirm(self):
+        self.open_confirm_form(f'Вийти з {self.settings_dict["mega_user"]}?', self.user_logout)
 
-    def mega_logout(self):
+    def user_logout(self):
         self.settings_dict['mega_user'] = ''
         self.settings_dict['mega_pass'] = ''
         self.user_login_status = False
-        self.check_mega_login()
+        self.check_login()
 
-    def open_mega_form(self):
-        self.mega_window = QtWidgets.QDialog()
+    def open_sing_up_form(self):
+        self.sing_up_window = QtWidgets.QDialog()
         self.ui = Ui_DialogMegaLogin()
-        self.ui.setupUi(self.mega_window, self)
-        self.mega_window.show()
+        self.ui.setupUi(self.sing_up_window, self)
+        self.sing_up_window.show()
 
     def open_backup_file(self):
         old_db_path = QtWidgets.QFileDialog.getOpenFileName(filter='*.sqlite3')[0]
@@ -612,7 +627,6 @@ class Ui_MyWindow(Ui_MainWindow):
     def del_station(self):
         del_station(self.radio_del_candidate_id)
         self.paste_in_radios_table()
-        self.db_ready_to_upload = True
 
     def open_confirm_form(self, header, function):
         self.window = QtWidgets.QMainWindow()
@@ -624,6 +638,7 @@ class Ui_MyWindow(Ui_MainWindow):
         self.radio_is_playing = True
         self.labelRadioStationIsPlaying.setText(f'Станція {self.radio_current_name}')
 
+
     def disable_radio(self):
         if self.radio_is_playing:
             self.add_to_log('Радіо стоп')
@@ -634,12 +649,30 @@ class Ui_MyWindow(Ui_MainWindow):
     def show_current_song(self):
         self.labelRadioCurrentSong.setText(self.radio_current_song)
 
+    def extract_radios_from_cloud(self):
+        if self.cloud_radio_num < 1:
+            token = login(self.settings_dict['mega_user'],
+                          self.settings_dict['mega_pass'])
+            self.radios_data = get_from_firebase(token, 'radios')
+            self.cloud_radio_num = len(self.radios_data) - 1
+            print(self.radios_data[self.cloud_radio_num])
+            self.lineEditRadioUrl.setText(self.radios_data[self.cloud_radio_num]['url'])
+            self.lineEditRadioName.setText(self.radios_data[self.cloud_radio_num]['name'])
+        else:
+            self.lineEditRadioUrl.setText(self.radios_data[self.cloud_radio_num]['url'])
+            self.lineEditRadioName.setText(self.radios_data[self.cloud_radio_num]['name'])
+        self.cloud_radio_num -= 1
+
+
+
+
     def save_new_station(self):
         name = self.lineEditRadioName.text()
         url = self.lineEditRadioUrl.text()
         if name != '' and url != '':
             save_new_station(name, url)
             self.paste_in_radios_table()
+
 
     def save_settings(self):
         self.settings_dict['auto_sync_time'] = str(self.spinBoxBackupTime.value())
@@ -668,7 +701,7 @@ class Ui_MyWindow(Ui_MainWindow):
         if self.settings_dict['mega_user'] and self.settings_dict['mega_pass']:
             self.db_ready_to_sync = True
         else:
-            self.open_mega_form()
+            self.open_sing_up_form()
 
     def change_color_theme(self):
         if self.comboBoxColorTheme.currentText() == 'Світла':
@@ -681,6 +714,7 @@ class Ui_MyWindow(Ui_MainWindow):
             self.frame_4.setStyleSheet(MyThemes.black_frame_4)
 
     def add_to_log(self, item=False):
+        item = str(item)[:156]
         if item:
             if len(str(item)) > 80:
                 item = f'{str(item)[0: 78]} \n {str(item)[78:-1]}'

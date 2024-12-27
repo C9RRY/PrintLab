@@ -1,4 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PrintLab.firebase_conn import signup
+import json
+import re
 
 
 class Ui_DialogMegaLogin(object):
@@ -75,7 +78,7 @@ class Ui_DialogMegaLogin(object):
 
     def retranslateUi(self, DialogMegaLogin):
         _translate = QtCore.QCoreApplication.translate
-        DialogMegaLogin.setWindowTitle(_translate("DialogMegaLogin", "Mega"))
+        DialogMegaLogin.setWindowTitle(_translate("DialogMegaLogin", "login"))
         self.label.setText(_translate("DialogMegaLogin", "Логін"))
         self.label_2.setText(_translate("DialogMegaLogin", "Пароль"))
         self.checkBoxShowPassword.setText(_translate("DialogMegaLogin", "Показати"))
@@ -149,8 +152,14 @@ class Ui_DialogMegaLogin(object):
             self.main_self.settings_dict['mega_user'] = self.lineEditLogin.text()
             self.main_self.settings_dict['mega_pass'] = self.real_pass
             self.main_self.auth_has_been_changed = True
+            try:
+                signup(self.main_self.settings_dict['mega_user'], self.main_self.settings_dict['mega_pass'])
+            except Exception as ex:
+                json_part = re.search(r'\{.*\}', str(ex), re.DOTALL).group()
+                self.main_self.add_to_log(json.loads(json_part)['error']['errors'][0]['message'])
+
             self.main_self.sync_with_cloud()
-            self.main_self.mega_window.close()
+            self.main_self.sing_up_window.close()
 
 
 if __name__ == "__main__":

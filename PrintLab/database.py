@@ -6,6 +6,8 @@ project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 database_path = project_dir + '\ling_lab.sqlite3'
 
 
+
+
 def extract_clients_data(columns, filters):
     conn = sqlite3.connect(database_path)
     cursor = conn.cursor()
@@ -17,6 +19,49 @@ def extract_clients_data(columns, filters):
     conn.commit()
     return data
 
+def extract_clients_for_firebase():
+    # Connect to the database
+    conn = sqlite3.connect(database_path)
+    cursor = conn.cursor()
+
+    # Fetch column names
+    cursor.execute(f"PRAGMA table_info('clients')")
+    columns = [col[1] for col in cursor.fetchall()]  # Extract column names from PRAGMA
+
+    # Fetch data
+    cursor.execute(f'SELECT * FROM clients ORDER BY id')
+    rows = cursor.fetchall()
+
+    data = {}
+    for row in rows:
+        in_date = row[2]
+        client_data = dict(zip(columns[1:], row[1:]))
+        data[f'clients/{in_date}/'] = client_data
+
+    conn.close()
+    return data
+
+def extract_radios_for_firebase():
+    # Connect to the database
+    conn = sqlite3.connect(database_path)
+    cursor = conn.cursor()
+
+    # Fetch column names
+    cursor.execute("PRAGMA table_info('radios')")
+    columns = [col[1] for col in cursor.fetchall()]  # Extract column names from PRAGMA
+
+    # Fetch data
+    cursor.execute(f'SELECT * FROM radios ORDER BY id')
+    rows = cursor.fetchall()
+
+    data = {}
+    for row in rows:
+        id = row[0]  # Assuming the 'id' is the first column
+        client_data = dict(zip(columns[1:], row[1:]))  # Skip the 'id' column
+        data[f'radios/{id}/'] = client_data
+
+    conn.close()
+    return data
 
 def save_new_order(columns, order_string):
     conn = sqlite3.connect(database_path)
@@ -76,6 +121,7 @@ def extract_radios_data(columns):
     data = [item for item in data]
     conn.commit()
     return data
+
 
 
 def save_radio_choice(columns, values, filters):
@@ -160,32 +206,34 @@ def extract_to_stat(filters):
     return data0, data1, data2
 
 
-def extract_from_backup(old_db_path, db_path):
-    conn = sqlite3.connect(old_db_path)
-    cursor = conn.cursor()
-    cursor.execute('SELECT brand, package, breakage, name, phone_number, in_date, '
-                   'break_fix, price, warranty, out_date, is_fixed, device_type, client_rate '
-                   'FROM clients ')
-    data = cursor.fetchall()
-    conn.commit()
+def extract_from_backup(data):
+    # conn = sqlite3.connect(old_db_path)
+    # cursor = conn.cursor()
+    # cursor.execute('SELECT brand, package, breakage, name, phone_number, in_date, '
+    #                'break_fix, price, warranty, out_date, is_fixed, device_type, client_rate '
+    #                'FROM clients ')
+    # data = cursor.fetchall()
+    # conn.commit()
+    #
+    # cursor.execute('SELECT id, name, url '
+    #                'FROM radios ')
+    # radios_data = cursor.fetchall()
+    # #print(data)
+    # conn.commit()
+    #
+    # cursor.close()
+    # conn.close()
 
-    cursor.execute('SELECT id, name, url '
-                   'FROM radios ')
-    radios_data = cursor.fetchall()
-    conn.commit()
-
-    cursor.close()
-    conn.close()
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(database_path)
     for client in data:
         cursor = conn.cursor()
         cursor.execute(f'INSERT INTO clients (brand, package, breakage, name, phone_number, in_date, '
                        f'break_fix, price, warranty, out_date, is_fixed, device_type, client_rate) '
-                       f'SELECT * FROM (SELECT "{client[0]}" AS brand, "{client[1]}" AS package, '
-                       f'"{client[2]}" AS breakage, "{client[3]}" AS name, "{client[4]}" AS phone_number, '
-                       f'"{client[5]}" AS in_date, "{client[6]}" AS break_fix, "{client[7]}" AS price, '
-                       f'"{client[8]}" AS warranty, "{client[9]}" AS out_date, "{client[10]}" AS is_fixed, '
-                       f'"{client[11]}" AS device_type, "{client[12]}" AS client_rate'
+                       f'SELECT * FROM (SELECT "{client[0]}" AS brand, "{client[9]}" AS package, '
+                       f'"{client[2]}" AS breakage, "{client[7]}" AS name, "{client[10]}" AS phone_number, '
+                       f'"{client[5]}" AS in_date, "{client[1]}" AS break_fix, "{client[11]}" AS price, '
+                       f'"{client[12]}" AS warranty, "{client[8]}" AS out_date, "{client[6]}" AS is_fixed, '
+                       f'"{client[4]}" AS device_type, "{client[3]}" AS client_rate'
                        f') AS temp '
                        f'WHERE NOT EXISTS ('
                        f'  SELECT in_date FROM clients WHERE in_date = "{client[5]}" '  # need to add AND name =
@@ -195,20 +243,12 @@ def extract_from_backup(old_db_path, db_path):
         if client[10] == '1':
             cursor = conn.cursor()
             cursor.execute(f'UPDATE clients '
-                           f'SET break_fix = "{client[6]}", price = "{client[7]}", warranty = "{client[8]}", '
-                           f'out_date = "{client[9]}" , is_fixed = "{client[10]}", client_rate = "{client[12]}"'
+                           f'SET break_fix = "{client[1]}", price = "{client[11]}", warranty = "{client[12]}", '
+                           f'out_date = "{client[8]}" , is_fixed = "{client[6]}", client_rate = "{client[3]}"'
                            f'WHERE in_date = "{client[5]}" AND is_fixed = "0" ')
     conn.commit()
     cursor.close()
-    for radio in radios_data:
-        cursor = conn.cursor()
-        cursor.execute(f'INSERT INTO radios (name, url)  '
-                       f'SELECT * FROM (SELECT "{radio[1]}" AS name, "{radio[2]}" AS url'
-                       f') AS temp '
-                       f'WHERE NOT EXISTS ('
-                       f'  SELECT name FROM radios WHERE name = "{radio[1]}" '  
-                       f') LIMIT 1')
-    conn.commit()
+
 
 
 if __name__ == '__main__':

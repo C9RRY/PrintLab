@@ -1295,7 +1295,7 @@
              <item row="0" column="0">
               <widget class="QLabel" name="label_9">
                <property name="text">
-                <string>Mega</string>
+                <string>Користувач</string>
                </property>
               </widget>
              </item>
@@ -1338,7 +1338,7 @@
                  </widget>
                 </item>
                 <item row="0" column="1">
-                 <widget class="QPushButton" name="pushButtonMegaLogout">
+                 <widget class="QPushButton" name="pushButtonLogout">
                   <property name="font">
                    <font>
                     <pointsize>14</pointsize>
@@ -1356,9 +1356,9 @@
               </widget>
              </item>
              <item row="1" column="0">
-              <widget class="QPushButton" name="pushButtonSyncToMega">
+              <widget class="QPushButton" name="pushButtonSyncToFirebase">
                <property name="text">
-                <string>Синхронізувати</string>
+                <string>Увійти</string>
                </property>
               </widget>
              </item>
@@ -1521,6 +1521,18 @@
                   </property>
                  </widget>
                 </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_17">
+                  <property name="font">
+                   <font>
+                    <pointsize>14</pointsize>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>URL</string>
+                  </property>
+                 </widget>
+                </item>
                 <item row="0" column="2">
                  <spacer name="horizontalSpacer_23">
                   <property name="orientation">
@@ -1534,19 +1546,14 @@
                   </property>
                  </spacer>
                 </item>
-                <item row="1" column="0">
-                 <widget class="QLabel" name="label_17">
-                  <property name="font">
-                   <font>
-                    <pointsize>14</pointsize>
-                   </font>
-                  </property>
+                <item row="0" column="3">
+                 <widget class="QPushButton" name="pushButtonRadiosFromCloud">
                   <property name="text">
-                   <string>URL</string>
+                   <string>Тицяло</string>
                   </property>
                  </widget>
                 </item>
-                <item row="1" column="1" colspan="2">
+                <item row="1" column="1" colspan="3">
                  <widget class="QLineEdit" name="lineEditRadioUrl">
                   <property name="font">
                    <font>

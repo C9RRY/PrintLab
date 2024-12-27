@@ -1,11 +1,12 @@
 import os
-import shutil
+from datetime import datetime
 from PyQt6 import QtCore
 import asyncio
-from mega import Mega
 import urllib.request
+import json
 import re
-from PrintLab.database import extract_from_backup
+from PrintLab.database import extract_from_backup, extract_radios_for_firebase
+from PrintLab.firebase_conn import login, extract_clients_for_firebase, update_firebase, get_from_firebase
 
 
 dir_path = os.getcwd()
@@ -84,67 +85,49 @@ class RadioAndAutoprintThread(QtCore.QThread):
                         self.mainwindow.radio_current_song = content.group(1)
                         self.mainwindow.show_current_song()
                 except Exception as ex:
-                    self.mainwindow.add_to_log(ex)
+                    json_part = re.search(r'\{.*\}', str(ex), re.DOTALL).group()
+                    self.mainwindow.add_to_log(json.loads(json_part)['error']['errors'][0]['message'])
             await asyncio.sleep(5)
 
     async def db_sync(self):
         while self._is_running:
-            if self.mainwindow.db_ready_to_sync:
-                self.mainwindow.db_ready_to_sync = False
-                self.mainwindow.add_to_log('Cинхронізація')
-                try:
-                    mega = Mega()
-                    m = mega.login(self.mainwindow.settings_dict['mega_user'],
-                                   self.mainwindow.settings_dict['mega_pass'])
-                    details = m.get_user()
-                    self.mainwindow.add_to_log(f"З'єднано {details['email']} ")
-                    file = m.find(old_db_name)
-                    self.mainwindow.add_to_log('Завантажую файли')
-                    self.mainwindow.user_login_status = True
-                    self.mainwindow.check_mega_login()
-                    self.mainwindow.db_ready_to_upload = True
-                    if file:
-                        m.download(file)
-                        old_db_path = str(dir_path) + '/' + old_db_name
-                        db_path = str(dir_path) + '/' + db_name
-                        extract_from_backup(old_db_path, db_path)
-                    self.mainwindow.paste_in_radios_table()
-                    self.mainwindow.paste_in_clients_table()
-                except Exception as ex:
-                    if str(ex) == "'NoneType' object is not subscriptable":
-                        self.mainwindow.add_to_log(str(ex))
-                    else:
-                        self.mainwindow.user_login_status = False
-                        self.mainwindow.add_to_log(f"З'єднання розірвано  {ex}")
-                        if self.mainwindow.auth_has_been_changed:
-                            self.mainwindow.mega_logout()
-                            self.mainwindow.auth_has_been_changed = False
-                        continue
-
             if self.mainwindow.db_ready_to_upload and self.mainwindow.tableWidgetClients.rowCount():
                 self.mainwindow.db_ready_to_upload = False
                 self.mainwindow.add_to_log('Оновлення бази даних')
                 try:
-                    mega = Mega()
-                    m = mega.login(self.mainwindow.settings_dict['mega_user'],
-                                   self.mainwindow.settings_dict['mega_pass'])
-                    for _ in range(2):
-                        file = m.find(old_db_name)
-                        if file:
-                            resp = m.delete(file[0])
-                    shutil.copy(db_name, old_db_name)
-                    m.upload(old_db_name)
-                    self.mainwindow.add_to_log('Синхронізовано')
-                except Exception as ex:
-                    self.mainwindow.add_to_log(f"З'єднання розірвано  {ex}")
-                self.mainwindow.add_to_log('Очистка тимчасових файлів')
-                try:
-                    os.remove(old_db_name)
-                    self.mainwindow.add_to_log('Видалено')
+                    self.token = login(self.mainwindow.settings_dict['mega_user'],
+                                       self.mainwindow.settings_dict['mega_pass'])
+                    clients_data = extract_clients_for_firebase()
+                    update_firebase(self.token, clients_data, 'clients')
+                    self.mainwindow.add_to_log('Клієнти - оновлено')
                 except Exception as ex:
                     self.mainwindow.add_to_log(ex)
-                self.mainwindow.progress_bar_status = False
-                self.mainwindow.paste_in_radios_table()
+                    continue
+
+            if self.mainwindow.db_ready_to_sync:
+                self.mainwindow.db_ready_to_sync = False
+                self.mainwindow.add_to_log('Cинхронізація')
+                try:
+                    self.token = login(self.mainwindow.settings_dict['mega_user'],
+                                       self.mainwindow.settings_dict['mega_pass'])
+                    self.mainwindow.add_to_log(f"З'єднано {self.mainwindow.settings_dict['mega_user']} ")
+                    self.mainwindow.user_login_status = True
+                    self.mainwindow.check_login()
+                    self.mainwindow.db_ready_to_upload = True
+
+                    backup_data = get_from_firebase(self.token, 'clients')
+                    extract_from_backup(backup_data)
+                    self.mainwindow.paste_in_radios_table()
+                    self.mainwindow.paste_in_clients_table()
+                except Exception as ex:
+                    json_part = re.search(r'\{.*\}', str(ex), re.DOTALL).group()
+                    self.mainwindow.add_to_log(json.loads(json_part)['error']['errors'][0]['message'])
+                    self.mainwindow.user_login_status = False
+                    # self.mainwindow.open_sing_up_form()
+                    if self.mainwindow.auth_has_been_changed:
+                        self.mainwindow.auth_has_been_changed = False
+                    continue
+
             await asyncio.sleep(1)
 
     async def auto_sync(self):
