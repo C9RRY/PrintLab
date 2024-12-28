@@ -1,12 +1,11 @@
 import os
-from datetime import datetime
 from PyQt6 import QtCore
 import asyncio
 import urllib.request
 import json
 import re
-from PrintLab.database import extract_from_backup, extract_radios_for_firebase
-from PrintLab.firebase_conn import login, extract_clients_for_firebase, update_firebase, get_from_firebase
+from PrintLab.database import extract_from_backup, extract_clients_for_firebase
+from PrintLab.firebase_conn import login, update_firebase, get_list_from_firebase
 
 
 dir_path = os.getcwd()
@@ -100,9 +99,10 @@ class RadioAndAutoprintThread(QtCore.QThread):
                     clients_data = extract_clients_for_firebase()
                     update_firebase(self.token, clients_data, 'clients')
                     self.mainwindow.add_to_log('Клієнти - оновлено')
+
                 except Exception as ex:
                     self.mainwindow.add_to_log(ex)
-                    continue
+
 
             if self.mainwindow.db_ready_to_sync:
                 self.mainwindow.db_ready_to_sync = False
@@ -115,18 +115,17 @@ class RadioAndAutoprintThread(QtCore.QThread):
                     self.mainwindow.check_login()
                     self.mainwindow.db_ready_to_upload = True
 
-                    backup_data = get_from_firebase(self.token, 'clients')
+                    backup_data = get_list_from_firebase(self.token, 'clients')
                     extract_from_backup(backup_data)
                     self.mainwindow.paste_in_radios_table()
                     self.mainwindow.paste_in_clients_table()
                 except Exception as ex:
-                    json_part = re.search(r'\{.*\}', str(ex), re.DOTALL).group()
-                    self.mainwindow.add_to_log(json.loads(json_part)['error']['errors'][0]['message'])
+                    print(ex)
+
                     self.mainwindow.user_login_status = False
-                    # self.mainwindow.open_sing_up_form()
+
                     if self.mainwindow.auth_has_been_changed:
                         self.mainwindow.auth_has_been_changed = False
-                    continue
 
             await asyncio.sleep(1)
 

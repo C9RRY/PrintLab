@@ -1,9 +1,8 @@
-import time
 from datetime import datetime
 from PrintLab.coupon_print import paste_to_order, paste_to_warranty
 from PrintLab.database import (extract_clients_data, save_new_order, save_warranty, get_must_use, save_settings, del_station,
-                      save_radio_choice, save_new_station, extract_settings, extract_radios_data, extract_from_backup,
-                      get_previous_price)
+                      save_radio_choice, save_new_station, extract_settings, extract_radios_data,
+                      get_previous_price, extract_from_lockal_backup)
 from PrintLab.themes import MyThemes
 import calendar
 import shutil
@@ -13,11 +12,12 @@ from PrintLab.user_form import Ui_DialogMegaLogin
 from PrintLab.confirm_form import Ui_MainWindowConfirmForm
 from PyQt6 import QtCore, QtWidgets
 from PrintLab.ui_main_window import Ui_MainWindow
-from PrintLab.firebase_conn import get_from_firebase, login
+from PrintLab.firebase_conn import get_dict_from_firebase, login
 import sys
 
 
 dir_path = os.path.dirname(os.path.abspath(__file__))
+
 
 
 class Ui_MyWindow(Ui_MainWindow):
@@ -167,6 +167,7 @@ class Ui_MyWindow(Ui_MainWindow):
         self.lineEditAdditional_info3.setText(self.settings_dict['additional_print_line3'])
         self.comboBoxColorTheme.setCurrentText(self.settings_dict['theme'])
 
+
         # self.last_backup_datetime = datetime.now()
         # print(self.last_backup_datetime)
 
@@ -203,8 +204,9 @@ class Ui_MyWindow(Ui_MainWindow):
     def open_backup_file(self):
         old_db_path = QtWidgets.QFileDialog.getOpenFileName(filter='*.sqlite3')[0]
         if old_db_path:
-            db_path = str(dir_path) + '/' + 'ling_lab.sqlite3'
-            extract_from_backup(old_db_path, db_path)
+            db_path = str(os.path.dirname(dir_path)) + '/' + 'ling_lab.sqlite3'
+            print(db_path)
+            extract_from_lockal_backup(old_db_path, db_path)
             self.paste_in_clients_table()
             self.tab.setCurrentIndex(0)
 
@@ -271,9 +273,10 @@ class Ui_MyWindow(Ui_MainWindow):
         self.selected_user_id = int(self.tableWidgetClients.item(row, 0).text())
         self.tab.setTabVisible(2, True)
         columns = 'device_type, package, break_fix, price, warranty, in_date, client_rate'
-        self.client_table_filters = 'WHERE '
-        self.client_table_filters += f'id = {self.tableWidgetClients.item(row, 0).text()} '
-        data = extract_clients_data(columns, self.client_table_filters)
+        client_filter = 'WHERE '
+        client_filter += f'id = {self.tableWidgetClients.item(row, 0).text()} '
+        data = extract_clients_data(columns, client_filter)
+
         in_date_datetime = datetime.strptime(data[0][5], '%Y-%m-%d %H:%M:%S')
         self.lineEditCouponPhoneNum.setText(self.tableWidgetClients.item(row, 4).text())
         self.lineEditCouponName.setText(self.tableWidgetClients.item(row, 3).text())
@@ -482,7 +485,7 @@ class Ui_MyWindow(Ui_MainWindow):
 
     def open_client_xlsx(self):
         filter_name = self.lineEditCouponName.text().title().replace(' ', '_')
-        default_dir = '../excel_files/saved_xlsx'
+        default_dir = f'{os.path.dirname(dir_path)}/excel_files/saved_xlsx'
         matching_files = [f for f in os.listdir(default_dir) if filter_name in f]
         filter_line = " ".join(matching_files)
         file_path = ''
@@ -653,11 +656,12 @@ class Ui_MyWindow(Ui_MainWindow):
         if self.cloud_radio_num < 1:
             token = login(self.settings_dict['mega_user'],
                           self.settings_dict['mega_pass'])
-            self.radios_data = get_from_firebase(token, 'radios')
+            self.radios_data = get_dict_from_firebase(token, 'radios')
             self.cloud_radio_num = len(self.radios_data) - 1
-            print(self.radios_data[self.cloud_radio_num])
-            self.lineEditRadioUrl.setText(self.radios_data[self.cloud_radio_num]['url'])
-            self.lineEditRadioName.setText(self.radios_data[self.cloud_radio_num]['name'])
+            if self.radios_data:
+                print(self.radios_data[self.cloud_radio_num])
+                self.lineEditRadioUrl.setText(self.radios_data[self.cloud_radio_num]['url'])
+                self.lineEditRadioName.setText(self.radios_data[self.cloud_radio_num]['name'])
         else:
             self.lineEditRadioUrl.setText(self.radios_data[self.cloud_radio_num]['url'])
             self.lineEditRadioName.setText(self.radios_data[self.cloud_radio_num]['name'])

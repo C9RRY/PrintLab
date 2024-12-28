@@ -1,5 +1,5 @@
 import pyrebase
-from PrintLab.database import extract_clients_for_firebase
+from PrintLab.database import extract_radios_for_firebase
 
 
 firebaseConfig = {'apiKey': "AIzaSyADCBApSnAZJcIY0EWBd2krywcIJsqEEoY",
@@ -22,7 +22,6 @@ def signup(email, password):
 def login(email, password):
     user = auth.sign_in_with_email_and_password(email, password)
     # Отримання idToken для доступу до бази
-    print(user)
 
     idToken = user['idToken']
 
@@ -38,11 +37,19 @@ def update_firebase(idToken, data, table_name):
     
 
     # Отримання даних з Realtime Database
-def get_from_firebase(idToken, table_name):
+def get_list_from_firebase(idToken, table_name):
     data = db.child(table_name).get(idToken)
     data_list = []
     for line in data.each():
         data_list.append(list(line.val().values()))
+    return data_list
+
+def get_dict_from_firebase(idToken, table_name):
+    data = db.child(table_name).get(idToken)
+    data_list = []
+    if data.each():
+        for line in data.each():
+            data_list.append(line.val())
     return data_list
 
 def delete_from_firebase(idToken, table_name, id):
@@ -51,17 +58,21 @@ def delete_from_firebase(idToken, table_name, id):
 def delete_table(idToken, table_name):
     db.child(table_name).remove(idToken)
 
+def update_radios():
+    token = login(input('login - '), input('password - '))
+    radios_data = extract_radios_for_firebase()
+    update_firebase(token, radios_data, 'radios')
 
 
 if __name__ == "__main__":
     try:
-        tok = login('ivan.lisovenko93@gmail.com', '93uranos')
-
+        # update_radios()
+        token = login(input('login - '), input('password - '))
         # get_from_firebase(tok, table_name)
         # data = extract_clients_for_firebase(table_name)
         # update_firebase(tok, data, table_name)
-        delete_table(tok, 'clients')
-        delete_table(tok, 'radios')
+        delete_table(token, 'clients')
+        # delete_table(token, 'radios')
     except Exception as e:
         print(f"Error: {e}")
 

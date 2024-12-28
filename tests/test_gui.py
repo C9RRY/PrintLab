@@ -21,7 +21,7 @@ def gui_window(qtbot):
 
 def test_window_title(gui_window):
     """Тест перевіряє, чи правильно встановлюється заголовок вікна."""
-    expected_title = "TechnoLab(v2.2)"
+    expected_title = "TechnoLab(v2.4)"
     assert gui_window.windowTitle() == expected_title
 
 

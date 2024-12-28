@@ -22,7 +22,7 @@ def gui_window(qtbot):
 
 def test_window_title(gui_window):
     """Тест перевіряє, чи правильно встановлюється заголовок вікна."""
-    expected_title = "TechnoLab(v2.2)"
+    expected_title = "TechnoLab(v2.4)"
     assert gui_window.windowTitle() == expected_title
 
 
@@ -36,7 +36,7 @@ def test_label_texts(gui_window):
     assert gui_window.label_6.text() == "Модель"
     assert gui_window.label_7.text() == "Додатково"
     assert gui_window.label_8.text() == "Поломка"
-    assert gui_window.label_9.text() == "Mega"
+    assert gui_window.label_9.text() == "Користувач"
     assert gui_window.label_10.text() == "Локальний backup"
     assert gui_window.label_11.text() == "хв."
     assert gui_window.label_12.text() == "Друк"
@@ -94,8 +94,8 @@ def test_button_texts(gui_window):
     assert gui_window.pushButtonSettingsSave.text() == "Зберегти"
     assert gui_window.pushButtonImportBase.text() == "Завантажити файл бази"
     assert gui_window.pushButtonExportBase.text() == "Створити резервну копію"
-    assert gui_window.pushButtonMegaLogout.text() == "Logout"
-    assert gui_window.pushButtonSyncToMega.text() == "Синхронізувати"
+    assert gui_window.pushButtonLogout.text() == "Logout"
+    assert gui_window.pushButtonSyncToFirebase.text() == "Увійти"
     assert gui_window.pushButtonRadioSave.text() == "Додати"
     assert gui_window.pushButtonRadioPlay.text() == "Play"
     assert gui_window.pushButtonRadioStop.text() == "Stop"
@@ -130,9 +130,9 @@ def test_settings_tab_texts(gui_window):
     assert gui_window.label_10.text() == "Локальний backup"
     assert gui_window.pushButtonImportBase.text() == "Завантажити файл бази"
     assert gui_window.pushButtonExportBase.text() == "Створити резервну копію"
-    assert gui_window.label_9.text() == "Mega"
-    assert gui_window.pushButtonMegaLogout.text() == "Logout"
-    assert gui_window.pushButtonSyncToMega.text() == "Синхронізувати"
+    assert gui_window.label_9.text() == "Користувач"
+    assert gui_window.pushButtonLogout.text() == "Logout"
+    assert gui_window.pushButtonSyncToFirebase.text() == "Увійти"
     assert gui_window.toolButtonAuth.text() == "..."
     assert gui_window.checkBoxAutobackup.text() == "Автозбереження у хмару"
     assert gui_window.label_11.text() == "хв."

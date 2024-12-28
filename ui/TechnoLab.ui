@@ -16,7 +16,7 @@
    </font>
   </property>
   <property name="windowTitle">
-   <string>TechnoLab(v2.1)</string>
+   <string>TechnoLab(v2.4)</string>
   </property>
   <property name="styleSheet">
    <string notr="true"/>
@@ -837,7 +837,7 @@
                </property>
                <property name="icon">
                 <iconset>
-                 <normaloff>document.png</normaloff>document.png</iconset>
+                 <normaloff>../icons/document.png</normaloff>../icons/document.png</iconset>
                </property>
                <property name="checkable">
                 <bool>true</bool>
@@ -1655,7 +1655,7 @@
                   </property>
                   <property name="icon">
                    <iconset>
-                    <normaloff>play.png</normaloff>play.png</iconset>
+                    <normaloff>../icons/play.png</normaloff>../icons/play.png</iconset>
                   </property>
                  </widget>
                 </item>
@@ -1724,7 +1724,7 @@
                   </property>
                   <property name="icon">
                    <iconset>
-                    <normaloff>stop.png</normaloff>stop.png</iconset>
+                    <normaloff>../icons/stop.png</normaloff>../icons/stop.png</iconset>
                   </property>
                  </widget>
                 </item>
@@ -1794,7 +1794,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap>antenna.png</pixmap>
+                <pixmap>../icons/antenna.png</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>
@@ -1822,7 +1822,7 @@
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap>video.png</pixmap>
+                <pixmap>../icons/video.png</pixmap>
                </property>
                <property name="scaledContents">
                 <bool>true</bool>

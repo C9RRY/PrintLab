@@ -1,6 +1,6 @@
 import sqlite3
 import os
-
+import uuid
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 database_path = project_dir + '\ling_lab.sqlite3'
@@ -18,7 +18,7 @@ def create_clients():
                    "breakage VARCHAR(150), "
                    "device_type VARCHAR(50), "
                    "package VARCHAR(150), "
-                   "out_date VARCHAR(40), "
+                   "out_date VARCHAR(40) DEFAULT '0', "
                    "warranty VARCHAR(20) DEFAULT '0 міс.', "
                    "price VARCHAR(20) DEFAULT '0', "
                    "is_fixed VARCHAR(10) DEFAULT '0', "
@@ -63,6 +63,7 @@ def create_all():
         create_clients()
         create_radios()
         create_settings()
+
         setting_dict = {'radio_current_url': '', 'radio_current_name': '',
                         'radio_is_playing': '0', 'radio_volume_level': '50',
                         'mega_user': '', 'mega_is_enabled': '1',
